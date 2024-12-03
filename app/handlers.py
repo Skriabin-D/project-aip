@@ -3,6 +3,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
+
 from app.ai import generate
 
 import app.database.requests as rq
@@ -21,13 +22,14 @@ class Reg(StatesGroup):
     quantity = State()
     zones = State()
     abonement = State()
+    time = State()
 
 @router.message(CommandStart())
 async def start(message: Message, state: FSMContext):
     await state.set_state(Reg.tg_id)
-    await message.answer(text='Здарова, давай начнем составлять программу тренировок. Жми кнопку /reg, чтобы зарегистрироваться', reply_markup=kb.reg_keyboard)
+    await message.answer(text='Здарова, давай начнем составлять программу тренировок. Жми кнопку /create, чтобы сделать это, либо, если у тебя уже есть абонемент, жми на эту кнопку', reply_markup=kb.check_keyboard)
 
-@router.message(Reg.tg_id, Command('reg'))
+@router.message(Reg.tg_id, Command('create'))
 async def register(message: Message, state: FSMContext):
     await state.update_data(tg_id=message.from_user.id)
     await state.set_state(Reg.age)
@@ -74,17 +76,6 @@ async def reg_quantity(callback: CallbackQuery, state: FSMContext):
 async def reg_zones(callback: CallbackQuery, state: FSMContext):
     await state.update_data(zones=callback.data)
     data = await state.get_data()
-    # await rq.set_user(
-    #     tg_id=data["tg_id"],
-    #     age=data["age"],
-    #     experience=data["experience"],
-    #     level=data["level"],
-    #     goal=data["goal"],
-    #     type_tr=data["type_tr"],
-    #     quantity=data["quantity"],
-    #     zones=data["zones"]
-    # )
-    # await state.clear()
     await callback.message.answer('Секунду, программа тренировок составляется по заданным параметрам...')
     ans = await generate(
         age=data["age"],
@@ -95,7 +86,6 @@ async def reg_zones(callback: CallbackQuery, state: FSMContext):
         quantity=data["quantity"],
         zones=data["zones"]
     )
-
     await callback.message.answer(ans)
 
     await state.set_state(Reg.abonement)
@@ -107,10 +97,31 @@ async def abonement(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     if data["abonement"] == "disagree":
         await callback.message.answer('Очень жаль, до свидания(')
+        await state.clear()
     elif data["abonement"] == 'agree':
         await callback.message.answer('Отлично! Укажите, на какое время хотите взять абонемент.', reply_markup=kb.time_keyboard)
+        await state.set_state(Reg.time)
+    # elif data["abonement"] == 'have already':
+    #     await
 
-@router.message(F.text == 'test')
-async def test(message: Message):
-    zone = await rq.get_info(message.from_user.id)
-    await message.answer(f'Ваша зона: {zone.zones}')
+
+@router.callback_query(Reg.time, F.data)
+async def time(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(time=callback.data)
+    data = await state.get_data()
+    await rq.set_user(tg_id=data["tg_id"], time=data["time"])
+    end_date = await rq.get_info(data["tg_id"])
+    await callback.message.answer(f'Отлично! Вы записаны, ваш абонемент действителен еще {end_date} дней')
+    await state.clear()
+
+@router.message(F.text == 'Проверить, сколько времени осталось от абонемента')
+async def check(message: Message):
+    end_date = await rq.get_info(message.from_user.id)
+    if end_date:
+        if end_date > 0:
+            await message.answer(f'Ваш абонемент действителен еще {end_date} дней!', reply_markup=kb.check_keyboard)
+        else:
+            await message.answer('К сожалению, ваш абонемент истек', reply_markup=kb.check_keyboard)
+    else:
+        await message.answer('К сожалению, вашего абонемента не существует(')
+

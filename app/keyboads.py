@@ -1,7 +1,8 @@
 from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton
 
-reg_keyboard = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text='/reg')]
+check_keyboard = ReplyKeyboardMarkup(keyboard=[
+    [KeyboardButton(text='/create')],
+    [KeyboardButton(text='Проверить, сколько времени осталось от абонемента')]
 ])
 
 age_keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -39,10 +40,13 @@ zones_keyboard = InlineKeyboardMarkup(inline_keyboard=[
 ])
 
 abonement_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='ДА🦾', callback_data='agree'), InlineKeyboardButton(text='НЕТ🤓', callback_data='disagree')]
+    [InlineKeyboardButton(text='ДА🦾', callback_data='agree'), InlineKeyboardButton(text='НЕТ🤓', callback_data='disagree')],
+    [InlineKeyboardButton(text='У меня он уже есть😎',callback_data='have already')]
 ])
 
 time_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='30 дней', callback_data='month'), InlineKeyboardButton(text='90 дней', callback_data='three_months')],
-     [InlineKeyboardButton(text='Полгода', callback_data='half_a_year'), InlineKeyboardButton(text='1 год', callback_data='year')]
+    [InlineKeyboardButton(text='30 дней', callback_data='1'), InlineKeyboardButton(text='90 дней', callback_data='3')],
+     [InlineKeyboardButton(text='Полгода', callback_data='6'), InlineKeyboardButton(text='1 год', callback_data='12')]
 ])
+
+
